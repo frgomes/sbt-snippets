@@ -1,1 +1,1 @@
-This plugin contains a utilities for SBT build scripts.
+Utilities for SBT build scripts and other SBT plugins.
