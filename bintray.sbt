@@ -1,8 +1,5 @@
-import bintray.Keys._
+bintrayRepository in bintray := "sbt-plugins"
 
-bintraySettings
+bintrayOrganization in bintray := Some("sbt-plugins")
 
-repository in bintray := "sbt-plugins"
-
-bintrayOrganization in bintray := None
-
+bintrayPackageLabels := Seq("scala", "sbt", "plugin")

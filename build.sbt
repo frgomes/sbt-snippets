@@ -23,3 +23,19 @@ scalacOptions ++= Seq(
 sbtPlugin := true
 
 publishMavenStyle := false
+
+publishArtifact in Test := false
+
+pomExtra := (
+  <scm>
+    <url>git@github.com:frgomes/{name.value}.git</url>
+    <connection>scm:git:git@github.com:frgomes/{name.value}.git</connection>
+  </scm>
+  <developers>
+    <developer>
+      <id>frgomes</id>
+      <name>Richard Gomes</name>
+      <url>https://github.com/frgomes</url>
+    </developer>
+  </developers>
+)
