@@ -1,5 +1,5 @@
-bintrayRepository in bintray := "sbt-plugins"
+bintrayOrganization in bintray := None
 
-bintrayOrganization in bintray := Some("sbt-plugins")
+bintrayRepository in bintray := "sbt-plugins"
 
 bintrayPackageLabels := Seq("scala", "sbt", "plugin")

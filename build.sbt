@@ -2,8 +2,13 @@ organization := "info.rgomes"
 
 name := "sbt-snippets"
 
+description := "Utilities for SBT build scripts and other SBT plugins."
+
 licenses += ("BSD", url("http://opensource.org/licenses/BSD-2-Clause"))
 
+//-------------------------------------------------------------------------------
+
+sbtPlugin := true
 
 scalaVersion       := "2.11.7"
 
@@ -20,7 +25,7 @@ scalacOptions ++= Seq(
   "-encoding", "UTF-8"
 )
 
-sbtPlugin := true
+//-------------------------------------------------------------------------------
 
 publishMavenStyle := false
 
