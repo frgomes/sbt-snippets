@@ -1,6 +1,7 @@
 package info.rgomes.sbt.snippets
 
 import java.io.File
+import java.net.URL
 
 
 trait RunnerSnippets {
@@ -38,7 +39,7 @@ trait RunnerSnippets {
 
   /** Runs or forks a Java application with fine-grained arguments */
   def javaRunner(args: Seq[String],
-                 classpath: Option[Seq[File]] = None,
+                 classpath: Option[Seq[URL]] = None,
                  mainClass: Option[String] = None,
                  javaTool : Option[String] = None,
                  fork : Boolean = false,
@@ -59,7 +60,7 @@ trait RunnerSnippets {
           Seq(
             "-cp",
             paths
-              .map(p => p.getAbsolutePath)
+              .map(p => p.toExternalForm)
               .mkString(java.io.File.pathSeparator))
         }
     val klass = mainClass.fold(Seq.empty[String]) { name => Seq(name) }
@@ -69,6 +70,8 @@ trait RunnerSnippets {
     //TODO:   log.get.info(if(fork) "Forking" else "Running")
     //TODO:   log.get.info(s"${app} " + xargs.mkString(" "))
     //TODO: }
+
+    println(s"${app} " + xargs.mkString(" "))
 
     if (cwd.isDefined) cwd.get.mkdirs
     val errno = osRunner(app, xargs, cwd, env, fork)
