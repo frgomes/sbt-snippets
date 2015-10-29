@@ -1,6 +1,6 @@
-import bintray._
-import bintray.Keys._
-
+//
+// build.sbt
+//
 
 def newModule(module: String): Project =
   Project(module, file(module))
@@ -9,15 +9,14 @@ def newModule(module: String): Project =
       name := s"sbt-snippets-${module}",
       version := (version in ThisBuild).value,
       description := s"Utilities for SBT build scripts and other SBT plugins: ${module} module.",
-      licenses += ("BSD", url("http://opensource.org/licenses/BSD-2-Clause")),
+      licenses += ("BSD Simplified", url("http://opensource.org/licenses/BSD-2-Clause")),
       publishMavenStyle := false,
       publishArtifact in Test := false)
-    .settings(bintrayPublishSettings:_*)
     .settings(
       name in bintray:= s"sbt-snippets-${module}",
-      repository in bintray := "sbt-plugins",
-      //XXX bintrayPackageLabels := Seq("scala", "sbt", "plugin"),
-      bintrayOrganization in bintray := None)
+      bintrayRepository    in bintray := "sbt-plugins",
+      bintrayPackageLabels in bintray := Seq("scala", "sbt", "plugin"),
+      bintrayOrganization  in bintray := None)
     .settings(
     pomExtra := (
       <scm>
@@ -44,8 +43,12 @@ lazy val scalaSettings: Seq[Setting[_]] =
     ))
 
 
+//++ val testSetup = taskKey[Unit]("Setup tests for extractor")
+
+
 lazy val root =
   project.in(file("."))
+    .settings( publish := { }, publishLocal := { } )
     .settings(scalaSettings:_*)
     .aggregate(core, plugin)
 
@@ -53,22 +56,19 @@ lazy val core =
   newModule("core")
     .settings(scalaSettings:_*)
 
-
-//++ val testSetup = taskKey[Unit]("Setup tests for extractor")
-
 lazy val plugin =
   newModule("plugin")
+    .settings(sbtPlugin := true)
     .settings(scalaSettings:_*)
-    .settings(crossBuildingSettings:_*)
-    .settings(
-      sbtPlugin := true,
-      name := name.value + "-" + CrossBuilding.pluginSbtVersion.value,
-      CrossBuilding.crossSbtVersions := Seq("0.12.4", "0.13.0", "0.13.7", "0.13.9")
+    // .settings(crossBuildingSettings:_*)
+    // .settings(
+    //   name := name.value + "-" + CrossBuilding.pluginSbtVersion.value,
+    //   CrossBuilding.crossSbtVersions := Seq("0.12.4", "0.13.0", "0.13.7", "0.13.9")
+    // .settings(
       //++ testSetup := {
       //++   System.setProperty("structure.sbtversion.full", CrossBuilding.pluginSbtVersion.value)
       //++   System.setProperty("structure.sbtversion.short", CrossBuilding.pluginSbtVersion.value.substring(0, 4))
       //++   System.setProperty("structure.scalaversion", scalaBinaryVersion.value)
       //++ },
       //++ test in Test <<= (test in Test).dependsOn(testSetup),
-      //++ testOnly in Test <<= (testOnly in Test).dependsOn(testSetup)
-  )
+      //++ testOnly in Test <<= (testOnly in Test).dependsOn(testSetup))
