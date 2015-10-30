@@ -50,7 +50,7 @@ trait RunnerSnippets {
                  //TODO: Option[Pipe.SinkChannel]   //stderr
                  //TODO: Option[Pipe.SinkChannel]   //log
                  jvmOptions: Seq[String] = Nil,
-                 javaHome  : Option[File] = None): Unit = {
+                 javaHome  : Option[File] = None): Int = {
 
     val app : String      = javaHome.fold("") { p => p.getAbsolutePath + "/bin/" } + javaTool.getOrElse("java")
     val jvm : Seq[String] = jvmOptions.map(p => p.toString)
@@ -74,7 +74,6 @@ trait RunnerSnippets {
     println(s"${app} " + xargs.mkString(" "))
 
     if (cwd.isDefined) cwd.get.mkdirs
-    val errno = osRunner(app, xargs, cwd, env, fork)
-    if(errno!=0) throw new IllegalStateException(s"errno = ${errno}")
+    osRunner(app, xargs, cwd, env, fork)
   }
 }

@@ -48,7 +48,7 @@ lazy val scalaSettings: Seq[Setting[_]] =
 
 lazy val root =
   project.in(file("."))
-    .settings( publish := { }, publishLocal := { } )
+    .settings( publish := { }, publishLocal := { }, bintrayUnpublish := { } )
     .settings(scalaSettings:_*)
     .aggregate(core, plugin)
 
