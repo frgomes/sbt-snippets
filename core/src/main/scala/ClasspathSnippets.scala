@@ -10,21 +10,24 @@ trait ClasspathSnippets {
 
 
   /**
-   * Function factory which returns a function which accepts a ``module`` and a ``task``
-   * so that it returns the location where compiled target classes can be found.
-   */
-  def targetLocation(scalav: String, target: String, updir: String = ""): Location = {
+    * Function factory which returns a function which accepts a ``module`` and a ``task``
+    * so that it returns the location where compiled target classes can be found.
+    */
+  def targetLocation(target: String, base: Option[File] = None, scalav: Option[String] = None): Location = {
     case (module: String, task: String) =>
-      Set(s"${updir}${module}/${target}/scala-${scalav}/${task}")
+      val prefix: String  = if(base.isDefined) (base.get.getCanonicalPath + "/") else ""
+      val cross: String = if(scalav.isDefined) s"scala-${scalav}/" else ""
+      Set(s"${prefix}${module}/${target}/${cross}${task}")
   }
 
   /**
-   * Function factory which returns a function which accepts a ``module`` and a ``task``
-   * so that it returns the location where SBT cached information about classpaths.
-   */
-  def cachedLocation(scalav: String, target: String, updir: String = ""): Location = {
+    * Function factory which returns a function which accepts a ``module`` and a ``task``
+    * so that it returns the location where SBT cached information about classpaths.
+    */
+  def cachedLocation(target: String, base: Option[File] = None): Location = {
     case (module: String, task: String) =>
-      val file = new java.io.FileInputStream(s"${updir}${module}/${target}/streams/${task}/$$global/streams/export")
+      val prefix: String  = if(base.isDefined) (base.get.getCanonicalPath + "/") else ""
+      val file = new java.io.FileInputStream(s"${prefix}${module}/${target}/streams/${task}/$$global/streams/export")
       scala.io.Source.fromInputStream(file, "UTF-8").getLines.mkString.split(":").toSet
   }
 
@@ -43,10 +46,10 @@ trait ClasspathSnippets {
    * }}}
    */
   def makeClasspath(modules: Set[String],
-                    scalav: String,
                     target: String,
-                    updir: String = ""): Seq[URL] =
-    makeClasspathPF(modules, scalav, target, updir)(Seq.empty[URL])
+                    base: Option[File] = None,
+                    scalav: Option[String] = None): Seq[URL] =
+    makeClasspathPF(modules, target, base, scalav)(Seq.empty[URL])
 
   /**
    * Builds a CLASSPATH from cached information generated from SBT and URLs passed by the user.
@@ -64,14 +67,14 @@ trait ClasspathSnippets {
    * }}}
    */
   def makeClasspathPF(modules: Set[String],
-                      scalav: String,
                       target: String,
-                      updir: String = "")
+                      base: Option[File] = None,
+                      scalav: Option[String] = None)
                      (custom: Seq[URL] = Seq.empty[URL]): Seq[URL] = {
     val resources = Set("classes", "test-classes")
     val classpath = Set("test/internalDependencyClasspath", "test/unmanagedClasspath", "test/managedClasspath")
-    val internal : Seq[URL] = makeClasspathPF(modules, resources)(targetLocation(scalav, target, updir))
-    val libraries: Seq[URL] = makeClasspathPF(modules, classpath)(cachedLocation(scalav, target, updir))
+    val internal : Seq[URL] = makeClasspathPF(modules, resources)(targetLocation(target, base, scalav))
+    val libraries: Seq[URL] = makeClasspathPF(modules, classpath)(cachedLocation(target, base))
     custom ++ internal ++ libraries
   }
 
