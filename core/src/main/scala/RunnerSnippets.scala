@@ -1,79 +1,88 @@
 package info.rgomes.sbt.snippets
 
 import java.io.File
-import java.net.URL
 
 
 trait RunnerSnippets {
 
   /** Runs an application on the operating system */
-  def osRunner(app : String,
+  def osRunner(app: String,
                args: Seq[String],
-               cwd : Option[File] = None,
-               env : Map[String, String] = Map.empty,
+               cwd: Option[File] = None,
+               env: Map[String, String] = Map.empty,
                //TODO: Option[Pipe.SourceChannel] //stdin
                //TODO: Option[Pipe.SinkChannel]   //stdout
                //TODO: Option[Pipe.SinkChannel]   //stderr
-               //TODO: Option[Pipe.SinkChannel]   //log
+               log: Option[LoggerAdapter] = None,
                fork: Boolean = false): Int = {
     import scala.collection.JavaConverters._
 
+    // command to be executed
     val cmd: Seq[String] = app +: args
     val pb = new java.lang.ProcessBuilder(cmd.asJava)
     if (cwd.isDefined) pb.directory(cwd.get)
-
-    pb.redirectInput()
-
+    // populate environment
+    env.foreach { case (k,v) => pb.environment.put(k, v) }
+    //FIXME: should optionally wire stdin, stdout, stderr instead of inheriting IO
     pb.inheritIO
-    //TODO: set environment
+    // run command optionally on a separate process
+    if(log.isDefined) log.get.debug(s"""${app} ${args.mkString(" ")}""")
     val process = pb.start()
-    if(fork) 0 else {
-      def cancel() = {
-        //TODO: if(log.isDefined) log.get.warn("Run canceled.")
-        process.destroy()
-        15
+    val errno =
+      if (fork) 0
+      else {
+        def cancel() = {
+          if (log.isDefined) log.get.warn("osRunner: Run canceled.")
+          process.destroy()
+          15
+        }
+        try process.waitFor catch {
+          case e: InterruptedException => cancel()
+        }
       }
-      try process.waitFor catch { case e: InterruptedException => cancel() }
-    }
+    if(log.isDefined) log.get.debug(errno.toString)
+    errno
   }
 
-  /** Runs or forks a Java application with fine-grained arguments */
-  def javaRunner(args: Seq[String],
-                 classpath: Option[Seq[URL]] = None,
-                 mainClass: Option[String] = None,
-                 javaTool : Option[String] = None,
-                 fork : Boolean = false,
-                 cwd: Option[File] = None,
-                 env: Map[String, String] = Map.empty,
-                 //TODO: Option[Pipe.SourceChannel] //stdin
-                 //TODO: Option[Pipe.SinkChannel]   //stdout
-                 //TODO: Option[Pipe.SinkChannel]   //stderr
-                 //TODO: Option[Pipe.SinkChannel]   //log
-                 jvmOptions: Seq[String] = Nil,
-                 javaHome  : Option[File] = None): Int = {
 
-    val app : String      = javaHome.fold("") { p => p.getAbsolutePath + "/bin/" } + javaTool.getOrElse("java")
-    val jvm : Seq[String] = jvmOptions.map(p => p.toString)
-    val cp  : Seq[String] =
-      classpath
-        .fold(Seq.empty[String]) { paths =>
+  def javaClasspath(classpath: Option[Seq[File]] = None): Seq[String] =
+    classpath
+      .fold(Seq.empty[String]) {
+        case paths =>
           Seq(
             "-cp",
             paths
-              .map(p => p.toExternalForm)
+              .map(p => p.getAbsolutePath)
               .mkString(java.io.File.pathSeparator))
-        }
+      }
+
+
+  /** Runs or forks a Java application with fine-grained arguments */
+  def javaRunner(classpath: Option[Seq[File]] = None,
+                 runJVMOptions: Seq[String] = Nil,
+                 mainClass: Option[String] = None,
+                 args: Seq[String],
+                 cwd: Option[File] = None,
+                 javaHome: Option[File] = None,
+                 javaTool: Option[String] = None,
+                 envVars: Map[String, String] = Map.empty,
+                 //TODO: Option[Pipe.SourceChannel] //stdin
+                 //TODO: Option[Pipe.SinkChannel]   //stdout
+                 //TODO: Option[Pipe.SinkChannel]   //stderr
+                 log: Option[LoggerAdapter] = None,
+                 fork: Boolean = false): Unit = {
+
+    val app: String = javaHome.fold("") { p => p.getAbsolutePath + "/bin/" } + javaTool.getOrElse("java")
+    val jvm: Seq[String] = runJVMOptions.map(p => p.toString)
+    val cp: Seq[String] = javaClasspath(classpath)
     val klass = mainClass.fold(Seq.empty[String]) { name => Seq(name) }
-    val xargs : Seq[String] = jvm ++ cp ++ klass ++ args
+    val xargs: Seq[String] = jvm ++ cp ++ klass ++ args
 
-    //TODO: if(log.isDefined) {
-    //TODO:   log.get.info(if(fork) "Forking" else "Running")
-    //TODO:   log.get.info(s"${app} " + xargs.mkString(" "))
-    //TODO: }
-
-    println(s"${app} " + xargs.mkString(" "))
-
-    if (cwd.isDefined) cwd.get.mkdirs
-    osRunner(app, xargs, cwd, env, fork)
+    if (cwd.isDefined)
+      if(!cwd.get.mkdirs)
+        throw new RuntimeException(s"""Could not create directory "${cwd.get}""")
+    val errno = osRunner(app, xargs, cwd, envVars, log, fork)
+    if (errno != 0) throw new IllegalStateException(s"""Application "${app}" returned errno = ${errno}""")
   }
+
 }
